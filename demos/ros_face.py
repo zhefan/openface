@@ -99,7 +99,7 @@ def getRep(bgrImg):
             time.time() - start))
 
     # print (reps)
-    return reps
+    return (reps,bb)
 
 
 def infer(img, args):
@@ -109,7 +109,7 @@ def infer(img, args):
         else:
                 (le, clf) = pickle.load(f, encoding='latin1')  # le - label and clf - classifer
 
-    reps = getRep(img)
+    reps,bb = getRep(img)
     persons = []
     confidences = []
     for rep in reps:
@@ -135,7 +135,7 @@ def infer(img, args):
             dist = np.linalg.norm(rep - clf.means_[maxI])
             print("  + Distance from the mean: {}".format(dist))
             pass
-    return (persons, confidences)
+    return (persons, confidences, bb)
 
 
 if __name__ == '__main__':
@@ -188,7 +188,7 @@ if __name__ == '__main__':
     confidenceList = []
     while True:
         ret, frame = video_capture.read()
-        persons, confidences = infer(frame, args)
+        persons, confidences, bb = infer(frame, args)
         print ("P: " + str(persons) + " C: " + str(confidences))
         try:
             # append with two floating point precision
@@ -198,7 +198,11 @@ if __name__ == '__main__':
             # We can simply ignore it.
             pass
 
+        counter = 0
         for i, c in enumerate(confidences):
+            box = bb[counter]
+            counter += 1
+            cv2.rectangle(frame, (box.left(), box.top()), (box.right(), box.bottom()), (255,0,0), 2 )
             if c <= args.threshold:  # 0.5 is kept as threshold for known face.
                 persons[i] = "_unknown"
 
