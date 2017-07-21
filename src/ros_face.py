@@ -41,7 +41,7 @@ from sklearn.mixture import GMM
 import openface
 
 import rospy
-import HeadMove
+from face_recognition.msg import head_move
 
 fileDir = os.path.dirname(os.path.realpath(__file__))
 modelDir = os.path.join(fileDir, '..', 'models')
@@ -215,7 +215,7 @@ if __name__ == '__main__':
             x_offset = (args.width/2 - box.center().x) / 1000.0
             y_offset = (args.height/2 - box.center().y) / 1000.0
             print x_offset, y_offset
-            msg = HeadMove()
+            msg = head_move()
             msg.x = x_offset
             msg.y = y_offset
             pub.publish(msg)
