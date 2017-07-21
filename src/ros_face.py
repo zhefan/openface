@@ -41,12 +41,18 @@ from sklearn.mixture import GMM
 import openface
 
 import rospy
-from face_recognition.msg import head_move
+import actionlib
+from control_msgs.msg import PointHeadAction, PointHeadGoal
+import roslib
+from sensor_msgs.msg import Image
+from cv_bridge import CvBridge, CvBridgeError
 
 fileDir = os.path.dirname(os.path.realpath(__file__))
 modelDir = os.path.join(fileDir, '..', 'models')
 dlibModelDir = os.path.join(modelDir, 'dlib')
 openfaceModelDir = os.path.join(modelDir, 'openface')
+
+rgb_image = None
 
 
 def getRep(bgrImg):
@@ -141,6 +147,52 @@ def infer(img, args):
     return (persons, confidences, bb)
 
 
+class PointHeadClient(object):
+
+    def __init__(self):
+        self.client = actionlib.SimpleActionClient("head_controller/point_head", PointHeadAction)
+        rospy.loginfo("Waiting for head_controller...")
+        self.client.wait_for_server()
+
+    def look_at(self, x, y, z, frame, max_v, duration=0.5):
+        goal = PointHeadGoal()
+        goal.target.header.stamp = rospy.Time.now()
+        goal.target.header.frame_id = frame
+        goal.target.point.x = x
+        goal.target.point.y = y
+        goal.target.point.z = z
+        goal.min_duration = rospy.Duration(duration)
+        goal.max_velocity = max_v
+        self.client.send_goal(goal)
+        #self.client.wait_for_result()
+
+
+class image_converter:
+
+  def __init__(self):
+    #self.image_pub = rospy.Publisher("head_camera/rgb/image_raw",Image)
+
+    self.bridge = CvBridge()
+    self.image_sub = rospy.Subscriber("head_camera/rgb/image_raw",Image,self.callback)
+
+  def callback(self,data):
+    try:
+      rgb_image = self.bridge.imgmsg_to_cv2(data, "bgr8")
+    except CvBridgeError as e:
+      print(e)
+
+
+def main():
+    ic = image_converter()
+    rospy.init_node('image_converter', anonymous=True)
+    try:
+        rospy.spin()
+    except KeyboardInterrupt:
+        print("Shutting down")
+
+    cv2.destroyAllWindows()
+
+
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
@@ -184,15 +236,16 @@ if __name__ == '__main__':
         cuda=args.cuda)
 
     # Capture device. Usually 0 will be webcam and 1 will be usb cam.
+    main() 
+    '''
     video_capture = cv2.VideoCapture(args.captureDevice)
     video_capture.set(3, args.width)
     video_capture.set(4, args.height)
 
     confidenceList = []
 
-    pub = rospy.Publisher('head_chatter', head_move)
-    rospy.init_node('head_move_talker', anonymous=True)
-    r = rospy.Rate(10) #10hz
+    rospy.init_node('head_move_chatter')
+    head_action = PointHeadClient()
 
     while True:
         ret, frame = video_capture.read()
@@ -212,13 +265,11 @@ if __name__ == '__main__':
             counter += 1
 
             cv2.rectangle(frame, (box.left(), box.top()), (box.right(), box.bottom()), (255,0,0), 2 )
-            x_offset = (args.width/2 - box.center().x) / 2000.0
-            y_offset = (args.height/2 - box.center().y) / 2000.0
+            
+            x_offset = (args.width/2 - box.center().x) / 3000.0
+            y_offset = (args.height/2 - box.center().y) / 1000.0
             print x_offset, y_offset
-            msg = head_move()
-            msg.x = x_offset
-            msg.y = y_offset
-            pub.publish(msg)
+            head_action.look_at(0.0, x_offset, y_offset, "head_tilt_link", 10.0)
             
             if c <= args.threshold:  # 0.5 is kept as threshold for known face.
                 persons[i] = "_unknown"
@@ -233,3 +284,4 @@ if __name__ == '__main__':
     # When everything is done, release the capture
     video_capture.release()
     cv2.destroyAllWindows()
+    '''
