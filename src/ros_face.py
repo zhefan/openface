@@ -212,8 +212,8 @@ if __name__ == '__main__':
             counter += 1
 
             cv2.rectangle(frame, (box.left(), box.top()), (box.right(), box.bottom()), (255,0,0), 2 )
-            x_offset = (args.width/2 - box.center().x) / 1000.0
-            y_offset = (args.height/2 - box.center().y) / 1000.0
+            x_offset = (args.width/2 - box.center().x) / 2000.0
+            y_offset = (args.height/2 - box.center().y) / 2000.0
             print x_offset, y_offset
             msg = head_move()
             msg.x = x_offset
