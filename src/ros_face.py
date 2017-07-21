@@ -40,6 +40,9 @@ np.set_printoptions(precision=2)
 from sklearn.mixture import GMM
 import openface
 
+import rospy
+import HeadMove
+
 fileDir = os.path.dirname(os.path.realpath(__file__))
 modelDir = os.path.join(fileDir, '..', 'models')
 dlibModelDir = os.path.join(modelDir, 'dlib')
@@ -186,6 +189,11 @@ if __name__ == '__main__':
     video_capture.set(4, args.height)
 
     confidenceList = []
+
+    pub = rospy.Publisher('head_chatter', head_move)
+    rospy.init_node('head_move_talker', anonymous=True)
+    r = rospy.Rate(10) #10hz
+
     while True:
         ret, frame = video_capture.read()
         persons, confidences, bb = infer(frame, args)
@@ -202,7 +210,16 @@ if __name__ == '__main__':
         for i, c in enumerate(confidences):
             box = bb[counter]
             counter += 1
+
             cv2.rectangle(frame, (box.left(), box.top()), (box.right(), box.bottom()), (255,0,0), 2 )
+            x_offset = (args.width/2 - box.center().x) / 1000.0
+            y_offset = (args.height/2 - box.center().y) / 1000.0
+            print x_offset, y_offset
+            msg = HeadMove()
+            msg.x = x_offset
+            msg.y = y_offset
+            pub.publish(msg)
+            
             if c <= args.threshold:  # 0.5 is kept as threshold for known face.
                 persons[i] = "_unknown"
 
