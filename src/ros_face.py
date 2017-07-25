@@ -26,6 +26,7 @@
 
 
 import time
+import math
 
 start = time.time()
 
@@ -51,8 +52,6 @@ fileDir = os.path.dirname(os.path.realpath(__file__))
 modelDir = os.path.join(fileDir, '..', 'models')
 dlibModelDir = os.path.join(modelDir, 'dlib')
 openfaceModelDir = os.path.join(modelDir, 'openface')
-
-rgb_image = None
 
 
 def getRep(bgrImg):
@@ -169,30 +168,70 @@ class PointHeadClient(object):
 
 class image_converter:
 
-  def __init__(self):
-    #self.image_pub = rospy.Publisher("head_camera/rgb/image_raw",Image)
-
-    self.bridge = CvBridge()
-    self.image_sub = rospy.Subscriber("head_camera/rgb/image_raw",Image,self.callback)
-
-  def callback(self,data):
-    try:
-      rgb_image = self.bridge.imgmsg_to_cv2(data, "bgr8")
-    except CvBridgeError as e:
-      print(e)
+    def __init__(self, input_args):
+        #self.image_pub = rospy.Publisher("head_camera/rgb/image_raw",Image)
+        self.args = input_args
+        self.bridge = CvBridge()
+        self.image_sub = rospy.Subscriber("head_camera/rgb/image_raw",Image,self.callback)
 
 
-def main():
-    ic = image_converter()
-    rospy.init_node('image_converter', anonymous=True)
-    try:
-        rospy.spin()
-    except KeyboardInterrupt:
-        print("Shutting down")
+    def callback(self,data):
+        try:
+            frame = self.bridge.imgmsg_to_cv2(data, "bgr8")
+            frame = cv2.resize(frame, (self.args.width, self.args.height))
+            confidenceList = []
 
-    cv2.destroyAllWindows()
+            #rospy.init_node('head_move_chatter')
 
+            #while True:
+            #    ret, frame = video_capture.read()
+            persons, confidences, bb = infer(frame, self.args)
+            print ("P: " + str(persons) + " C: " + str(confidences))
+            try:
+                # append with two floating point precision
+                confidenceList.append('%.2f' % confidences[0])
+            except:
+                # If there is no face detected, confidences matrix will be empty.
+                # We can simply ignore it.
+                pass
 
+            counter = 0
+            for i, c in enumerate(confidences):
+                box = bb[counter]
+                counter += 1
+
+                cv2.rectangle(frame, (box.left(), box.top()), (box.right(), box.bottom()), (255,0,0), 2 )
+                
+                x_offset = self.args.width/2.0 - box.center().x
+                y_offset = self.args.height/2.0 - box.center().y
+                print( 'height: '+str(self.args.height)+", y_center: "+str(box.center().y) )
+                print( 'x_offset: '+str(x_offset)+", y_offset: "+str(y_offset) )
+
+                x_comm = x_offset / 3000.0
+                y_comm = y_offset / 2000.0
+
+                if math.fabs(x_offset) < self.args.width/16:
+                    x_comm = 0.0
+
+                if math.fabs(y_offset) < self.args.height/16:
+                    y_comm = 0.0
+
+                print( 'x_comm: '+str(x_comm)+", y_comm: "+str(y_comm) )
+                head_action.look_at(0.0, x_comm, y_comm, "head_tilt_link", 0.2)
+                
+                if c <= self.args.threshold:  # 0.5 is kept as threshold for known face.
+                    persons[i] = "_unknown"
+
+            # Print the person name and conf value on the frame
+            cv2.putText(frame, "P: {} C: {}".format(persons, confidences),
+                        (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
+
+            cv2.imshow('', frame)
+            cv2.waitKey(1)
+     
+        except CvBridgeError as e:
+            print(e)
+   
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
@@ -226,26 +265,30 @@ if __name__ == '__main__':
         '--classifierModel',
         type=str,
         help='The Python pickle representing the classifier. This is NOT the Torch network model, which can be set with --networkModel.')
-
+    
     args = parser.parse_args()
-
     align = openface.AlignDlib(args.dlibFacePredictor)
     net = openface.TorchNeuralNet(
         args.networkModel,
         imgDim=args.imgDim,
         cuda=args.cuda)
 
-    # Capture device. Usually 0 will be webcam and 1 will be usb cam.
-    main() 
-    '''
+    rospy.init_node('head_chatter')
+    head_action = PointHeadClient()
+    # 
+    ic = image_converter(args)
+    try:
+        rospy.spin()
+    except KeyboardInterrupt:
+        print("Shutting down")
+
+    cv2.destroyAllWindows()
+'''
     video_capture = cv2.VideoCapture(args.captureDevice)
     video_capture.set(3, args.width)
     video_capture.set(4, args.height)
 
     confidenceList = []
-
-    rospy.init_node('head_move_chatter')
-    head_action = PointHeadClient()
 
     while True:
         ret, frame = video_capture.read()
@@ -284,4 +327,4 @@ if __name__ == '__main__':
     # When everything is done, release the capture
     video_capture.release()
     cv2.destroyAllWindows()
-    '''
+'''
