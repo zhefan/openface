@@ -34,6 +34,8 @@ import numpy as np
 np.set_printoptions(precision=2)
 import pandas as pd
 
+import sys
+sys.path.insert(0, '/home/zhefanye/at_ws/src/face_recognition/src/')
 import openface
 
 from sklearn.pipeline import Pipeline

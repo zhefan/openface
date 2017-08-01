@@ -21,6 +21,9 @@ import os
 import random
 import shutil
 
+import sys
+sys.path.insert(0, '/home/zhefanye/at_ws/src/face_recognition/src/')
+
 import openface
 import openface.helper
 from openface.data import iterImgs
