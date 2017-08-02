@@ -1,29 +1,4 @@
 #!/usr/bin/env python2
-#
-# Example to run classifier on webcam stream.
-# Brandon Amos & Vijayenthiran
-# 2016/06/21
-#
-# Copyright 2015-2016 Carnegie Mellon University
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
-# Contrib: Vijayenthiran
-# This example file shows to run a classifier on webcam stream. You need to
-# run the classifier.py to generate classifier with your own dataset.
-# To run this file from the openface home dir:
-# ./demo/classifier_webcam.py <path-to-your-classifier>
-
 
 import time
 import math
@@ -165,6 +140,7 @@ class PointHeadClient(object):
         self.client.send_goal(goal)
         #self.client.wait_for_result()
 
+
 def process_image(frame, args):
     confidenceList = []
 
@@ -200,7 +176,8 @@ def process_image(frame, args):
             y_comm = 0.0
 
         print( 'x_comm: '+str(x_comm)+", y_comm: "+str(y_comm) )
-        head_action.look_at(0.0, x_comm, y_comm, "head_tilt_link", 0.2)
+        if args.test == 0:
+            head_action.look_at(0.0, x_comm, y_comm, "head_tilt_link", 0.2)
         
         if c <= args.threshold:  # 0.5 is kept as threshold for known face.
             persons[i] = "_unknown"
@@ -285,6 +262,8 @@ if __name__ == '__main__':
         '--classifierModel',
         type=str,
         help='The Python pickle representing the classifier. This is NOT the Torch network model, which can be set with --networkModel.')
+    parser.add_argument('--test', type=int, default=0)
+
     
     args = parser.parse_args()
     align = openface.AlignDlib(args.dlibFacePredictor)
@@ -294,7 +273,8 @@ if __name__ == '__main__':
         cuda=args.cuda)
 
     rospy.init_node('head_chatter')
-    head_action = PointHeadClient()
+    if args.test == 0:
+        head_action = PointHeadClient()
     # 
     if args.device == 0:
         webcam(args)
@@ -307,6 +287,5 @@ if __name__ == '__main__':
 
 
     cv2.destroyAllWindows()
-'''
-        cv2.destroyAllWindows()
-'''
+
+
