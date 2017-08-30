@@ -26,6 +26,7 @@ if __name__ == '__main__':
         default=os.path.join(
             dlibModelDir,
             "shape_predictor_68_face_landmarks.dat"))
+    parser.add_argument('--id',type=str,help="id to track",default="zz")
     parser.add_argument(
         '--networkModel',
         type=str,

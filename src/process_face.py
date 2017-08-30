@@ -64,7 +64,7 @@ def getRep(bgrImg, align_lib, net, args):
     return (reps,bb)
 
 
-def infer(img, align_lib, net, args):
+def detect(img, align_lib, net, args):
     with open(args.classifierModel, 'r') as f:
         if sys.version_info[0] < 3:
                 (le, clf) = pickle.load(f)  # le - label and clf - classifer

@@ -1,4 +1,5 @@
 import cv2
+import rospy
 import math
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge, CvBridgeError
@@ -52,7 +53,7 @@ def webcam(align_lib, net, args):
 def process_image(frame, align_lib, net, args):
     confidenceList = []
 
-    persons, confidences, bb = process_face.infer(frame, align_lib, net, args)
+    persons, confidences, bb = process_face.detect(frame, align_lib, net, args)
     print ("P: " + str(persons) + " C: " + str(confidences))
     try:
         # append with two floating point precision
@@ -62,34 +63,33 @@ def process_image(frame, align_lib, net, args):
         # We can simply ignore it.
         pass
 
-    counter = 0
     for i, c in enumerate(confidences):
-        box = bb[counter]
-        counter += 1
+        box = bb[i]
+        if persons[i] != args.id:
+            cv2.rectangle(frame, (box.left(), box.top()), (box.right(), box.bottom()), (255,0,0), 2 )
 
-        cv2.rectangle(frame, (box.left(), box.top()), (box.right(), box.bottom()), (255,0,0), 2 )
-        
-        x_offset = args.width/2.0 - box.center().x
-        y_offset = args.height/2.0 - box.center().y
-        print( 'height: '+str(args.height)+", y_center: "+str(box.center().y) )
-        print( 'x_offset: '+str(x_offset)+", y_offset: "+str(y_offset) )
+        elif persons[i] == args.id and c > args.threshold:
+            cv2.rectangle(frame, (box.left(), box.top()), (box.right(), box.bottom()), (0,0,255), 2 )
 
-        x_comm = x_offset / 3000.0
-        y_comm = y_offset / 2000.0
+            x_offset = args.width/2.0 - box.center().x
+            y_offset = args.height/2.0 - box.center().y
+            print( 'height: '+str(args.height)+", y_center: "+str(box.center().y) )
+            print( 'x_offset: '+str(x_offset)+", y_offset: "+str(y_offset) )
 
-        if math.fabs(x_offset) < args.width/16:
-            x_comm = 0.0
+            x_comm = x_offset / 3000.0
+            y_comm = y_offset / 2000.0
 
-        if math.fabs(y_offset) < args.height/16:
-            y_comm = 0.0
+            if math.fabs(x_offset) < args.width/16:
+                x_comm = 0.0
 
-        print( 'x_comm: '+str(x_comm)+", y_comm: "+str(y_comm) )
-        if args.test == 0:
-            head_action = point_head.PointHeadClient()
-            head_action.look_at(0.0, x_comm, y_comm, "head_tilt_link", 0.2)
-        
-        if c <= args.threshold:  # 0.5 is kept as threshold for known face.
-            persons[i] = "_unknown"
+            if math.fabs(y_offset) < args.height/16:
+                y_comm = 0.0
+
+            print( 'x_comm: '+str(x_comm)+", y_comm: "+str(y_comm) )
+            if args.test == 0:
+                head_action = point_head.PointHeadClient()
+                head_action.look_at(0.0, x_comm, y_comm, "head_tilt_link", 0.2)
+                
 
     # Print the person name and conf value on the frame
     cv2.putText(frame, "P: {} C: {}".format(persons, confidences),
