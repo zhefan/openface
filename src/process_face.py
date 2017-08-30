@@ -17,7 +17,6 @@ def getRep(bgrImg, align_lib, net, args):
 
     if args.verbose:
         print("  + Original size: {}".format(rgbImg.shape))
-    if args.verbose:
         print("Loading the image took {} seconds.".format(time.time() - start))
 
     start = time.time()
@@ -60,7 +59,6 @@ def getRep(bgrImg, align_lib, net, args):
         print("Neural network forward pass took {} seconds.".format(
             time.time() - start))
 
-    # print (reps)
     return (reps,bb)
 
 
@@ -78,8 +76,10 @@ def detect(img, align_lib, net, args):
         try:
             rep = rep.reshape(1, -1)
         except:
-            print ("No Face detected")
+            if args.verbose:
+                print ("No Face detected")
             return (None, None)
+        
         start = time.time()
         predictions = clf.predict_proba(rep).ravel()
         # print (predictions)
@@ -95,7 +95,8 @@ def detect(img, align_lib, net, args):
         # print("Predict {} with {:.2f} confidence.".format(person.decode('utf-8'), confidence))
         if isinstance(clf, GMM):
             dist = np.linalg.norm(rep - clf.means_[maxI])
-            print("  + Distance from the mean: {}".format(dist))
+            if args.verbose:
+                print("  + Distance from the mean: {}".format(dist))
             pass
     return (persons, confidences, bb)
 

@@ -51,10 +51,13 @@ def webcam(align_lib, net, args):
 '''Detect and recognize faces
 '''
 def process_image(frame, align_lib, net, args):
-    confidenceList = []
+    x_flg = False
+    y_flg = False
 
+    confidenceList = []
     persons, confidences, bb = process_face.detect(frame, align_lib, net, args)
-    print ("P: " + str(persons) + " C: " + str(confidences))
+    if args.verbose:
+        print ("P: " + str(persons) + " C: " + str(confidences))
     try:
         # append with two floating point precision
         confidenceList.append('%.2f' % confidences[0])
@@ -73,19 +76,23 @@ def process_image(frame, align_lib, net, args):
 
             x_offset = args.width/2.0 - box.center().x
             y_offset = args.height/2.0 - box.center().y
-            print( 'height: '+str(args.height)+", y_center: "+str(box.center().y) )
-            print( 'x_offset: '+str(x_offset)+", y_offset: "+str(y_offset) )
+            if args.verbose:
+                print( 'height: '+str(args.height)+", y_center: "+str(box.center().y) )
+                print( 'x_offset: '+str(x_offset)+", y_offset: "+str(y_offset) )
 
             x_comm = x_offset / 3000.0
             y_comm = y_offset / 2000.0
 
             if math.fabs(x_offset) < args.width/16:
                 x_comm = 0.0
+                x_flg = True
 
             if math.fabs(y_offset) < args.height/16:
                 y_comm = 0.0
+                y_flg = True
 
-            print( 'x_comm: '+str(x_comm)+", y_comm: "+str(y_comm) )
+            if args.verbose:
+                print( 'x_comm: '+str(x_comm)+", y_comm: "+str(y_comm) )
             if args.test == 0:
                 head_action = point_head.PointHeadClient()
                 head_action.look_at(0.0, x_comm, y_comm, "head_tilt_link", 0.2)
@@ -97,5 +104,9 @@ def process_image(frame, align_lib, net, args):
 
     cv2.imshow('', frame)
     cv2.waitKey(1)
-
+    
+    if x_flg and y_flg:
+        return True
+    else:
+        return False    
 

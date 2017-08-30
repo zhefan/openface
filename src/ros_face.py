@@ -4,6 +4,7 @@ import argparse
 import cv2
 import os
 import rospy
+import actionlib
 
 import process_frame
 import openface
@@ -61,7 +62,7 @@ if __name__ == '__main__':
         imgDim=args.imgDim,
         cuda=args.cuda)
 
-    rospy.init_node('head_chatter')
+    rospy.init_node('head_mover')
 
     if args.device == 0:
         process_frame.webcam(align_lib, net, args)

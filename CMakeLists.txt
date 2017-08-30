@@ -12,8 +12,11 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   rospy
   sensor_msgs
-  opencv2
+  #opencv2
   cv_bridge
+  genmsg
+  actionlib_msgs 
+  actionlib
 )
 
 ## System dependencies are found with CMake's conventions
@@ -50,11 +53,11 @@ find_package(catkin REQUIRED COMPONENTS
 ##   * add every package in MSG_DEP_SET to generate_messages(DEPENDENCIES ...)
 
 ## Generate messages in the 'msg' folder
-add_message_files(
-  FILES
-  head_move.msg
+# add_message_files(
+#  FILES
+#  head_move.msg
 #   Message2.msg
-)
+#)
 
 ## Generate services in the 'srv' folder
 # add_service_files(
@@ -69,11 +72,13 @@ add_message_files(
 #   Action1.action
 #   Action2.action
 # )
+add_action_files(DIRECTORY action FILES HeadMover.action)
 
 ## Generate added messages and services with any dependencies listed here
 generate_messages(
   DEPENDENCIES
   std_msgs  # Or other packages containing msgs
+  actionlib_msgs
 )
 
 ################################################
