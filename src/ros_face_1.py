@@ -26,7 +26,6 @@ class HeadMover(object):
             auto_start=False)
         self._server.start()
 
-
     def execute_cb(self, goal):
         # init face align lib and network
         align_lib = openface.AlignDlib(args.dlibFacePredictor)
@@ -36,24 +35,24 @@ class HeadMover(object):
             cuda=args.cuda)
 
         self._server.set_succeeded(True)
-        
-        if self._server.is_preempt_requested():
-            rospy.loginfo('%s: Preempted' % self._action_name)
-            self._as.set_preempted()
-            self._rate.sleep()
+
+        # if self._server.is_preempt_requested():
+        #     rospy.loginfo('%s: Preempted' % self._action_name)
+        #     self._as.set_preempted()
+        #     self._rate.sleep()
 
         if args.device == 0:
             process_frame.webcam(align_lib, net, args)
         else:
             ic = process_frame.image_converter(align_lib, net, args)
             try:
-                pass 
+                pass
             except KeyboardInterrupt:
                 print("Shutting down")
 
         cv2.destroyAllWindows()
 
-    
+
 ''' main function
 '''
 if __name__ == '__main__':
@@ -71,7 +70,7 @@ if __name__ == '__main__':
         default=os.path.join(
             dlibModelDir,
             "shape_predictor_68_face_landmarks.dat"))
-    parser.add_argument('--id',type=str,help="id to track",default="zz")
+    parser.add_argument('--id', type=str, help="id to track", default="zz")
     parser.add_argument(
         '--networkModel',
         type=str,
@@ -98,7 +97,7 @@ if __name__ == '__main__':
     parser.add_argument('--test', type=int, default=0)
 
     args = parser.parse_args()
-    
+
     ######################################
 
     rospy.init_node('head_mover')

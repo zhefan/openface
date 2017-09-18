@@ -1,12 +1,14 @@
 import numpy as np
 import cv2
-np.set_printoptions(precision=2)
 from sklearn.mixture import GMM
 import sys
 import pickle
 
 import time
 start = time.time()
+
+np.set_printoptions(precision=2)
+
 
 def getRep(bgrImg, align_lib, net, args):
     start = time.time()
@@ -59,17 +61,18 @@ def getRep(bgrImg, align_lib, net, args):
         print("Neural network forward pass took {} seconds.".format(
             time.time() - start))
 
-    return (reps,bb)
+    return (reps, bb)
 
 
 def detect(img, align_lib, net, args):
     with open(args.classifierModel, 'r') as f:
         if sys.version_info[0] < 3:
-                (le, clf) = pickle.load(f)  # le - label and clf - classifer
+            (le, clf) = pickle.load(f)  # le - label and clf - classifer
         else:
-                (le, clf) = pickle.load(f, encoding='latin1')  # le - label and clf - classifer
+            # le - label and clf - classifer
+            (le, clf) = pickle.load(f, encoding='latin1')
 
-    reps,bb = getRep(img, align_lib, net, args)
+    reps, bb = getRep(img, align_lib, net, args)
     persons = []
     confidences = []
     for rep in reps:
@@ -79,7 +82,7 @@ def detect(img, align_lib, net, args):
             if args.verbose:
                 print ("No Face detected")
             return (None, None)
-        
+
         start = time.time()
         predictions = clf.predict_proba(rep).ravel()
         # print (predictions)
@@ -99,5 +102,3 @@ def detect(img, align_lib, net, args):
                 print("  + Distance from the mean: {}".format(dist))
             pass
     return (persons, confidences, bb)
-
-
