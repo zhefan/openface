@@ -1,8 +1,8 @@
 #!/usr/bin/env python2
 
+import os
 import argparse
 import cv2
-import os
 import rospy
 import actionlib
 
@@ -12,7 +12,7 @@ import face_recognition.msg
 
 
 class HeadMover(object):
-    # create messages that are used to publish feedback/result
+    """ head mover main class """
     _feedback = face_recognition.msg.HeadMoverFeedback()
     _result = face_recognition.msg.HeadMoverResult()
 
@@ -27,7 +27,7 @@ class HeadMover(object):
         self._server.start()
 
     def execute_cb(self, goal):
-        # init face align lib and network
+        """init face align lib and network"""
         align_lib = openface.AlignDlib(args.dlibFacePredictor)
         net = openface.TorchNeuralNet(
             args.networkModel,
@@ -44,19 +44,18 @@ class HeadMover(object):
         if args.device == 0:
             process_frame.webcam(align_lib, net, args)
         else:
-            ic = process_frame.image_converter(align_lib, net, args)
+            process_frame.image_converter(align_lib, net, args)
             try:
                 pass
             except KeyboardInterrupt:
                 print("Shutting down")
 
-        cv2.destroyAllWindows()
+        if not args.noviz:
+            cv2.destroyAllWindows()
 
 
-''' main function
-'''
 if __name__ == '__main__':
-
+    """ main function """
     fileDir = os.path.dirname(os.path.realpath(__file__))
     modelDir = os.path.join(fileDir, '..', 'models')
     dlibModelDir = os.path.join(modelDir, 'dlib')
@@ -90,10 +89,12 @@ if __name__ == '__main__':
     parser.add_argument('--threshold', type=float, default=0.5)
     parser.add_argument('--cuda', action='store_true')
     parser.add_argument('--verbose', action='store_true')
+    parser.add_argument('--noviz', action='store_true')
     parser.add_argument(
         '--classifierModel',
         type=str,
-        help='The Python pickle representing the classifier. This is NOT the Torch network model, which can be set with --networkModel.')
+        help='The Python pickle representing the classifier. \
+        This is NOT the Torch network model, which can be set with --networkModel.')
     parser.add_argument('--test', type=int, default=0)
 
     args = parser.parse_args()

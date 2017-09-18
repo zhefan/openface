@@ -1,3 +1,5 @@
+""" Magna demo core
+"""
 import cv2
 import rospy
 import math
@@ -8,11 +10,8 @@ import process_face
 import point_head
 
 
-'''Capture image from robot cam
-'''
-
-
 class image_converter:
+    """ Capture image from robot cam """
 
     def __init__(self, align_lib, net, input_args):
         #self.image_pub = rospy.Publisher("head_camera/rgb/image_raw",Image)
@@ -33,11 +32,8 @@ class image_converter:
             print(e)
 
 
-'''Capture image from webcam
-'''
-
-
 def webcam(align_lib, net, args):
+    """ Capture image from webcam """
     video_capture = cv2.VideoCapture(args.device)
     video_capture.set(3, args.width)
     video_capture.set(4, args.height)
@@ -52,11 +48,8 @@ def webcam(align_lib, net, args):
     video_capture.release()
 
 
-'''Detect and recognize faces
-'''
-
-
 def process_image(frame, align_lib, net, args):
+    """ Detect and recognize faces """
     x_flg = False
     y_flg = False
 
@@ -74,14 +67,9 @@ def process_image(frame, align_lib, net, args):
 
     for i, c in enumerate(confidences):
         box = bb[i]
-        if persons[i] != args.id:
-            cv2.rectangle(frame, (box.left(), box.top()),
-                          (box.right(), box.bottom()), (255, 0, 0), 2)
 
-        elif persons[i] == args.id and c > args.threshold:
-            cv2.rectangle(frame, (box.left(), box.top()),
-                          (box.right(), box.bottom()), (0, 0, 255), 2)
-
+        # if face found
+        if persons[i] == args.id and c > args.threshold:
             x_offset = args.width / 2.0 - box.center().x
             y_offset = args.height / 2.0 - box.center().y
             if args.verbose:
@@ -107,12 +95,22 @@ def process_image(frame, align_lib, net, args):
                 head_action = point_head.PointHeadClient()
                 head_action.look_at(0.0, x_comm, y_comm, "head_tilt_link", 0.2)
 
-    # Print the person name and conf value on the frame
-    cv2.putText(frame, "P: {} C: {}".format(persons, confidences),
-                (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
+            # display red bbox if face id found
+            if not args.noviz:
+                cv2.rectangle(frame, (box.left(), box.top()),
+                              (box.right(), box.bottom()), (0, 0, 255), 2)
+        else:  # if no face found
+            if not args.noviz:
+                cv2.rectangle(frame, (box.left(), box.top()),
+                              (box.right(), box.bottom()), (255, 0, 0), 2)
 
-    cv2.imshow('', frame)
-    cv2.waitKey(1)
+    # Print the person name and conf value on the frame
+    if not args.noviz:
+        cv2.putText(frame, "P: {} C: {}".format(persons, confidences),
+                    (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
+
+        cv2.imshow('', frame)
+        cv2.waitKey(1)
 
     if x_flg and y_flg:
         return True

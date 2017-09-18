@@ -68,9 +68,6 @@ def detect(img, align_lib, net, args):
     with open(args.classifierModel, 'r') as f:
         if sys.version_info[0] < 3:
             (le, clf) = pickle.load(f)  # le - label and clf - classifer
-        else:
-            # le - label and clf - classifer
-            (le, clf) = pickle.load(f, encoding='latin1')
 
     reps, bb = getRep(img, align_lib, net, args)
     persons = []
