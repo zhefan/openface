@@ -2,31 +2,7 @@
 """
 import math
 import cv2
-import rospy
-from sensor_msgs.msg import Image
-from cv_bridge import CvBridge, CvBridgeError
-
 import process_face
-
-
-class image_converter(object):
-    """ Capture image from robot cam """
-
-    def __init__(self, input_args):
-        #self.image_pub = rospy.Publisher("head_camera/rgb/image_raw",Image)
-        self.args = input_args
-        self.bridge = CvBridge()
-        self.image_sub = rospy.Subscriber(
-            "head_camera/rgb/image_raw", Image, self.callback)
-
-    def callback(self, data):
-        try:
-            frame = self.bridge.imgmsg_to_cv2(data, "bgr8")
-            frame = cv2.resize(frame, (self.args.width, self.args.height))
-            process_image(frame, self.args)
-
-        except CvBridgeError as e:
-            print(e)
 
 
 def webcam(args):

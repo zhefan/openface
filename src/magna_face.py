@@ -5,6 +5,8 @@ import argparse
 import cv2
 import rospy
 import actionlib
+from sensor_msgs.msg import Image
+from cv_bridge import CvBridge, CvBridgeError
 
 import process_frame
 import openface
@@ -17,6 +19,7 @@ class HeadMover(object):
     _result = face_recognition.msg.HeadMoverResult()
 
     def __init__(self, name):
+        # action server
         self._action_name = name
         self._rate = rospy.Rate(10)
         self._server = actionlib.SimpleActionServer(
@@ -25,45 +28,53 @@ class HeadMover(object):
             execute_cb=self.execute_cb,
             auto_start=False)
         self._server.start()
+        # grab rgb image
+        self.bridge = CvBridge()
+        self.image_sub = rospy.Subscriber(
+            "head_camera/rgb/image_raw", Image, self.callback)
+        self.frame = None
+
+    def callback(self, data):
+        """ RGB image call back """
+        try:
+            self.frame = cv2.resize(self.bridge.imgmsg_to_cv2(data, "bgr8"),
+                                    (args.width, args.height))
+        except CvBridgeError as e:
+            print(e)
 
     def execute_cb(self, goal):
         """init face align lib and network"""
-        if goal.comm:
-            args.id = goal.id
-            args.align_lib = openface.AlignDlib(args.dlibFacePredictor)
-            args.net = openface.TorchNeuralNet(
-                args.networkModel,
-                imgDim=args.imgDim,
-                cuda=args.cuda)
-            args.head_action = point_head.PointHeadClient()
+        args.id = goal.id
+        args.align_lib = openface.AlignDlib(args.dlibFacePredictor)
+        args.net = openface.TorchNeuralNet(
+            args.networkModel,
+            imgDim=args.imgDim,
+            cuda=args.cuda)
+        args.head_action = point_head.PointHeadClient()
 
-            # self._server.accept_new_goal()
-            # if self._server.is_preempt_requested():
-            #     rospy.loginfo('%s: Preempted' % self._action_name)
-            #     self._as.set_preempted()
-            #     self._rate.sleep()
-            self._result = True
+        # self._server.accept_new_goal()
+        # if self._server.is_preempt_requested():
+        #     rospy.loginfo('%s: Preempted' % self._action_name)
+        #     self._as.set_preempted()
+        #     self._rate.sleep()
+        # self._result = True
+        print(goal.comm)
+        if goal.comm:
             if args.device == 0:
                 process_frame.webcam(args)
-            else:
-                process_frame.image_converter(args)
-                try:
-                    pass
-                except KeyboardInterrupt:
-                    print("Shutting down")
+            elif args.device == 1:
+                while not self._server.is_preempt_requested():
+                    if self.frame is not None:  # sanity check
+                        ret = process_frame.process_image(self.frame, args)
+                        print(ret)
 
-            self._server.set_succeeded(True)
+        self._server.set_succeeded(True)
 
-            if not args.noviz:
-                cv2.destroyAllWindows()
-        else:
-            self._server.set_succeeded(False)
-            self._result = False
-            self._server.publish_feedback(self._result)
+        if not args.noviz:
+            cv2.destroyAllWindows()
 
 
 if __name__ == '__main__':
-    """ main function """
     fileDir = os.path.dirname(os.path.realpath(__file__))
     modelDir = os.path.join(fileDir, '..', 'models')
     dlibModelDir = os.path.join(modelDir, 'dlib')
