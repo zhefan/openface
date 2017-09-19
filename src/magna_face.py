@@ -5,8 +5,6 @@ import argparse
 import cv2
 import rospy
 import actionlib
-from sensor_msgs.msg import Image
-from cv_bridge import CvBridge, CvBridgeError
 
 import process_frame
 import openface
@@ -28,19 +26,6 @@ class HeadMover(object):
             execute_cb=self.execute_cb,
             auto_start=False)
         self._server.start()
-        # grab rgb image
-        self.bridge = CvBridge()
-        self.image_sub = rospy.Subscriber(
-            "head_camera/rgb/image_raw", Image, self.callback)
-        self.frame = None
-
-    def callback(self, data):
-        """ RGB image call back """
-        try:
-            self.frame = cv2.resize(self.bridge.imgmsg_to_cv2(data, "bgr8"),
-                                    (args.width, args.height))
-        except CvBridgeError as e:
-            print(e)
 
     def execute_cb(self, goal):
         """init face align lib and network"""
@@ -58,15 +43,19 @@ class HeadMover(object):
         #     self._as.set_preempted()
         #     self._rate.sleep()
         # self._result = True
-        print(goal.comm)
+        print('Start face recognition: ' + str(goal.comm))
         if goal.comm:
             if args.device == 0:
                 process_frame.webcam(args)
             elif args.device == 1:
+                # start rgb image call back
+                ic = process_frame.image_converter(args)
                 while not self._server.is_preempt_requested():
-                    if self.frame is not None:  # sanity check
-                        ret = process_frame.process_image(self.frame, args)
-                        print(ret)
+                    # face recognition
+                    ret = ic.robot_process_img()
+                    if args.verbose:
+                        print('face found: ' + str(ret))
+                    # self._rate.sleep()
 
         self._server.set_succeeded(True)
 
