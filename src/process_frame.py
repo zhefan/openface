@@ -1,23 +1,20 @@
 """ Magna demo core
 """
+import math
 import cv2
 import rospy
-import math
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge, CvBridgeError
 
 import process_face
-import point_head
 
 
-class image_converter:
+class image_converter(object):
     """ Capture image from robot cam """
 
-    def __init__(self, align_lib, net, input_args):
+    def __init__(self, input_args):
         #self.image_pub = rospy.Publisher("head_camera/rgb/image_raw",Image)
         self.args = input_args
-        self.align_lib = align_lib
-        self.net = net
         self.bridge = CvBridge()
         self.image_sub = rospy.Subscriber(
             "head_camera/rgb/image_raw", Image, self.callback)
@@ -26,21 +23,21 @@ class image_converter:
         try:
             frame = self.bridge.imgmsg_to_cv2(data, "bgr8")
             frame = cv2.resize(frame, (self.args.width, self.args.height))
-            process_image(frame, self.align_lib, self.net, self.args)
+            process_image(frame, self.args)
 
         except CvBridgeError as e:
             print(e)
 
 
-def webcam(align_lib, net, args):
+def webcam(args):
     """ Capture image from webcam """
     video_capture = cv2.VideoCapture(args.device)
     video_capture.set(3, args.width)
     video_capture.set(4, args.height)
 
     while True:
-        ret, frame = video_capture.read()
-        process_image(frame, align_lib, net, args)
+        _, frame = video_capture.read()
+        process_image(frame, args)
        # quit the program on the press of key 'q'
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
@@ -48,21 +45,21 @@ def webcam(align_lib, net, args):
     video_capture.release()
 
 
-def process_image(frame, align_lib, net, args):
+def process_image(frame, args):
     """ Detect and recognize faces """
     x_flg = False
     y_flg = False
 
     confidenceList = []
-    persons, confidences, bb = process_face.detect(frame, align_lib, net, args)
+    persons, confidences, bb = process_face.detect(
+        frame, args.align_lib, args.net, args)
     if args.verbose:
-        print ("P: " + str(persons) + " C: " + str(confidences))
+        print("P: " + str(persons) + " C: " + str(confidences))
     try:
         # append with two floating point precision
         confidenceList.append('%.2f' % confidences[0])
     except:
-        # If there is no face detected, confidences matrix will be empty.
-        # We can simply ignore it.
+        # If there is no face detected, confidences matrix will be empty. We can simply ignore it.
         pass
 
     for i, c in enumerate(confidences):
@@ -91,9 +88,10 @@ def process_image(frame, align_lib, net, args):
 
             if args.verbose:
                 print('x_comm: ' + str(x_comm) + ", y_comm: " + str(y_comm))
-            if args.test == 0:
-                head_action = point_head.PointHeadClient()
-                head_action.look_at(0.0, x_comm, y_comm, "head_tilt_link", 0.2)
+
+            # send command to robot
+            args.head_action.look_at(
+                0.0, x_comm, y_comm, "head_tilt_link", 0.2)
 
             # display red bbox if face id found
             if not args.noviz:

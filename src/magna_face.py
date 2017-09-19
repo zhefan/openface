@@ -8,12 +8,12 @@ import actionlib
 
 import process_frame
 import openface
+import point_head
 import face_recognition.msg
 
 
 class HeadMover(object):
     """ head mover main class """
-    _feedback = face_recognition.msg.HeadMoverFeedback()
     _result = face_recognition.msg.HeadMoverResult()
 
     def __init__(self, name):
@@ -28,30 +28,38 @@ class HeadMover(object):
 
     def execute_cb(self, goal):
         """init face align lib and network"""
-        align_lib = openface.AlignDlib(args.dlibFacePredictor)
-        net = openface.TorchNeuralNet(
-            args.networkModel,
-            imgDim=args.imgDim,
-            cuda=args.cuda)
+        if goal.comm:
+            args.id = goal.id
+            args.align_lib = openface.AlignDlib(args.dlibFacePredictor)
+            args.net = openface.TorchNeuralNet(
+                args.networkModel,
+                imgDim=args.imgDim,
+                cuda=args.cuda)
+            args.head_action = point_head.PointHeadClient()
 
-        self._server.set_succeeded(True)
+            # self._server.accept_new_goal()
+            # if self._server.is_preempt_requested():
+            #     rospy.loginfo('%s: Preempted' % self._action_name)
+            #     self._as.set_preempted()
+            #     self._rate.sleep()
+            self._result = True
+            if args.device == 0:
+                process_frame.webcam(args)
+            else:
+                process_frame.image_converter(args)
+                try:
+                    pass
+                except KeyboardInterrupt:
+                    print("Shutting down")
 
-        # if self._server.is_preempt_requested():
-        #     rospy.loginfo('%s: Preempted' % self._action_name)
-        #     self._as.set_preempted()
-        #     self._rate.sleep()
+            self._server.set_succeeded(True)
 
-        if args.device == 0:
-            process_frame.webcam(align_lib, net, args)
+            if not args.noviz:
+                cv2.destroyAllWindows()
         else:
-            process_frame.image_converter(align_lib, net, args)
-            try:
-                pass
-            except KeyboardInterrupt:
-                print("Shutting down")
-
-        if not args.noviz:
-            cv2.destroyAllWindows()
+            self._server.set_succeeded(False)
+            self._result = False
+            self._server.publish_feedback(self._result)
 
 
 if __name__ == '__main__':
@@ -69,7 +77,6 @@ if __name__ == '__main__':
         default=os.path.join(
             dlibModelDir,
             "shape_predictor_68_face_landmarks.dat"))
-    parser.add_argument('--id', type=str, help="id to track", default="zz")
     parser.add_argument(
         '--networkModel',
         type=str,

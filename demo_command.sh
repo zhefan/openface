@@ -12,7 +12,7 @@ for N in {1..4}; do ./util/align-dlib.py data/lab/raw align outerEyesAndNose dat
 # use flag --test to enable test mode (1 for testing without head action, 0 for deploying)
 #python src/ros_face.py --classifierModel data/lab/feat/classifier.pkl --cuda --device 0 --id yzf --test 1 --verbose
 roslaunch fetch_gazebo simulation.launch # connect to robot or run simulation
-python src/magna_face.py --classifierModel data/lab/feat/classifier.pkl --cuda --device 0 --id yzf --test 1 --verbose
+python src/magna_face.py --classifierModel data/lab/feat/classifier.pkl --cuda --device 0 --verbose
 
 # starting another terminal
 rostopic pub /head_mover/goal face_recognition/HeadMoverActionGoal "header:
