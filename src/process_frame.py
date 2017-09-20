@@ -72,7 +72,8 @@ def process_image(frame, args):
         box = bb[i]
 
         # if face found
-        if persons[i] == args.id and c > args.threshold:
+        # if persons[i] == args.id and c > args.threshold:
+        if c > args.threshold:
             x_offset = args.width / 2.0 - box.center().x
             y_offset = args.height / 2.0 - box.center().y
             if args.verbose:
