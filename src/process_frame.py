@@ -60,20 +60,26 @@ def process_image(frame, args):
     if box is not None:  # if face found
         x_offset = args.width / 2.0 - box.center().x
         y_offset = args.height / 2.0 - box.center().y
+        x_d = x_offset - args.x
+        y_d = y_offset - args.y
+        args.x = x_offset
+        args.y = y_offset
         if args.verbose:
-            print('height: ' + str(args.height) +
-                  ", y_center: " + str(box.center().y))
-            print('x_offset: ' + str(x_offset) +
-                  ", y_offset: " + str(y_offset))
+            print('x_offset: ' + str(x_offset) + ', x_d: ' + str(x_d) +
+                  ", y_offset: " + str(y_offset) + ', args.y: ' + str(args.y) +
+                  ', y_d: ' + str(y_d))
 
-        x_comm = x_offset / 3000.0
-        y_comm = y_offset / 2000.0
+        # pd controller
+        x_comm = (x_offset + x_d * 0.1) / 2500.0
+        y_comm = (y_offset + y_d * 0.1) / 2000.0
+        # x_comm = x_offset / 2000.0 + args.x_d * 0.5
+        # y_comm = y_offset / 1000.0 + y_d * 0.1
 
-        if math.fabs(x_offset) < args.width / 16:
+        if math.fabs(x_offset) < args.width / 16.0:
             x_comm = 0.0
             x_flg = True
 
-        if math.fabs(y_offset) < args.height / 16:
+        if math.fabs(y_offset) < args.height / 12.0:
             y_comm = 0.0
             y_flg = True
 

@@ -39,12 +39,12 @@ class HeadMover(object):
                 process_frame.webcam(args)
             elif args.device == 1:
                 # start rgb image call back
+                args.x = 0.0
+                args.y = 0.0
                 ic = process_frame.image_converter(args)
                 while not self._server.is_preempt_requested():
                     # face recognition
                     ret = ic.robot_process_img()
-                    if args.verbose:
-                        print('face found: ' + str(ret))
 
         self._server.set_succeeded(True)
 
